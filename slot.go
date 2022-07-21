@@ -3,7 +3,6 @@ package ind
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,7 +12,7 @@ import (
 
 func FetchSlots(venue Venue, persons uint) ([]Slot, error) {
 	if persons > 6 {
-		return nil, errors.New("too many people")
+		return nil, ErrTooManyPeople
 	}
 
 	resp, err := http.Get(slotURL(venue, persons))
@@ -21,15 +20,15 @@ func FetchSlots(venue Venue, persons uint) ([]Slot, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("invalid http status")
-	}
-
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	data = bytes.ReplaceAll(data, []byte(")]}',"), []byte(""))
+	data = bytes.ReplaceAll(data, []byte(")]}',\n"), []byte(""))
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w with (status:%d, body:%s)", ErrInvalidHTTPStatus, resp.StatusCode, string(data))
+	}
 
 	var slots = struct {
 		Status string `json:"status"`

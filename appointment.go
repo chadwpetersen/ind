@@ -3,7 +3,6 @@ package ind
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -20,15 +19,15 @@ func ReserveAppointment(venue Venue, slot Slot) (*Slot, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("invalid http status")
-	}
-
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	data = bytes.ReplaceAll(data, []byte(")]}',"), []byte(""))
+	data = bytes.ReplaceAll(data, []byte(")]}',\n"), []byte(""))
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w with (status:%d, body:%s)", ErrInvalidHTTPStatus, resp.StatusCode, string(data))
+	}
 
 	var reserve = struct {
 		Status string `json:"status"`
@@ -54,15 +53,17 @@ func CreateAppointment(venue Venue, req AppointmentReq) ([]byte, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("invalid http status")
-	}
-
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	return bytes.ReplaceAll(data, []byte(")]}',"), []byte("")), nil
+	data = bytes.ReplaceAll(data, []byte(")]}',\n"), []byte(""))
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w with (status:%d, body:%s)", ErrInvalidHTTPStatus, resp.StatusCode, string(data))
+	}
+
+	return data, nil
 }
 
 func appointmentURL(venue Venue) string {
