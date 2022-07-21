@@ -1,0 +1,3 @@
+Success we booked an appointment!
+
+The appointment is booked for {{.Date}} at {{.Start}} until {{.End}}
