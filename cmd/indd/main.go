@@ -3,13 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
-	"os/exec"
-	"text/template"
 	"time"
 
 	"github.com/chadwpetersen/ind"
+	"github.com/chadwpetersen/ind/data"
+	"github.com/chadwpetersen/ind/log"
 )
 
 var (
@@ -24,7 +22,7 @@ var (
 	strictly = true
 
 	// Select a venue and a strategy to find an appointment.
-	venue    = ind.VenueAmsterdam
+	venue    = ind.VenueDenHaag
 	strategy = ind.StrategyIndividual
 
 	// Your personal details along with the customer information
@@ -52,12 +50,12 @@ var (
 
 func main() {
 	if strategy == ind.StrategyTogether {
-		log.Println("Running with together strategy")
+		log.Info("Running with together strategy")
 		run(customers...)
 		return
 	}
 
-	log.Println("Running with individual strategy")
+	log.Info("Running with individual strategy")
 	for _, customer := range customers {
 		run(customer)
 	}
@@ -73,103 +71,83 @@ func run(cl ...ind.Customer) {
 
 		slots, err := ind.FetchSlots(venue, uint(len(cl)))
 		if err != nil {
-			log.Fatalln(err)
+			log.Error("Failed to fetch slots", err, log.WithLabels(
+				map[string]any{
+					"venue":     venue,
+					"customers": cl,
+				}))
 			return
 		}
 		if len(slots) == 0 {
-			log.Println("No slots found")
+			log.Warn("No slots found", log.WithLabels(
+				map[string]any{
+					"venue":     venue,
+					"customers": cl,
+				}))
 			continue
 		}
 
-		dates := make([]string, len(slots))
+		dates := make([]string, 0)
 		for _, slot := range slots {
-			dates = append(dates, fmt.Sprintf("\n\t %s (%s - %s)", slot.Date, slot.Start, slot.End))
+			dates = append(dates, fmt.Sprintf("%s (%s - %s)", slot.Date, slot.Start, slot.End))
 		}
-		log.Printf("Found some slots: %v\n", dates)
+
+		log.Info("Found some slots", log.WithLabels(
+			map[string]any{
+				"venue":     venue,
+				"customers": cl,
+				"dates":     dates,
+			}))
 
 		slot, err = ind.PickSlot(slots, before, after, strictly)
 		if errors.Is(err, ind.ErrNoAvailableSlots) {
-			log.Printf("No available slots to pick")
+			log.Warn("No available slots to pick")
 			continue
 		} else if err != nil {
-			log.Fatalln(err)
+			log.Error("Failed to pick a slot", err)
 			return
 		}
-		log.Printf("Pick Slot: %v \n", slot)
 
+		log.Info("Picked a slot", log.WithAlert(), log.WithLabels(
+			map[string]any{
+				"venue":     venue,
+				"slot":      slot,
+				"customers": cl,
+			}))
 		break
 	}
 
-	rdata, err := ind.ReserveAppointment(venue, *slot)
+	rslot, err := ind.ReserveAppointment(venue, *slot)
 	if err != nil {
-		log.Fatalln(err)
+		log.Error("Failed to reserve appointment", err)
 		return
 	}
-	log.Printf("Reserve: %v \n", rdata)
+	log.Info("Reserved appointment", log.WithLabels(
+		map[string]any{
+			"venue":         venue,
+			"reserved_slot": rslot,
+			"customers":     cl,
+		}))
 
-	data, err := ind.CreateAppointment(venue, makeAppRequest(*slot, cl))
+	apt, err := ind.CreateAppointment(venue, makeAppRequest(*slot, cl))
 	if err != nil {
-		log.Fatalln(err)
+		log.Error("Failed to create appointment", err)
 		return
 	}
-	log.Printf("Appointment: %s \n", string(data))
+	log.Pass("Created appointment", log.WithLabels(
+		map[string]any{
+			"venue":               venue,
+			"appointment_details": string(apt),
+			"customers":           cl,
+		}))
 
-	err = makeOutput(*slot, data)
+	err = data.Generate(*slot, apt)
 	if err != nil {
-		log.Fatalln(err)
+		log.Error("Failed to create output", err)
 		return
 	}
 
-	log.Println("Output successfully created")
-}
-
-func makeOutput(slot ind.Slot, raw []byte) error {
-	t, err := template.ParseFiles("data/template.txt")
-	// Capture any error
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Create("data/output/say.txt")
-	if err != nil {
-		return err
-	}
-
-	date, err := time.Parse("2006-01-02", slot.Date)
-	if err != nil {
-		return err
-	}
-
-	slot.Date = date.Format("January, 2 2006")
-
-	err = t.Execute(f, slot)
-	if err != nil {
-		return err
-	}
-
-	rf, err := os.Create("data/output/raw.txt")
-	if err != nil {
-		return err
-	}
-
-	if _, err := rf.WriteString(string(raw)); err != nil {
-		return err
-	}
-
-	for i := 0; i < 5; i++ {
-		cmd := exec.Command("/usr/bin/say", "-f", "data/output/say.txt")
-		err := cmd.Start()
-		if err != nil {
-			return err
-		}
-
-		err = cmd.Wait()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	log.Pass("Output successfully created")
 }
 
 func makeAppRequest(slot ind.Slot, cl []ind.Customer) ind.AppointmentReq {

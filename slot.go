@@ -44,6 +44,10 @@ func FetchSlots(venue Venue, persons uint) ([]Slot, error) {
 }
 
 func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Slot, error) {
+	if len(slots) == 0 {
+		return nil, ErrNoAvailableSlots
+	}
+
 	sort.Slice(slots, func(i, j int) bool {
 		aDate, err := time.Parse("2006-01-02", slots[i].Date)
 		if err != nil {
@@ -58,6 +62,10 @@ func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Sl
 		return aDate.Before(bDate)
 	})
 
+	if !strict {
+		return &slots[0], nil
+	}
+
 	for _, slot := range slots {
 		d, err := time.Parse("2006-01-02", slot.Date)
 		if err != nil {
@@ -69,16 +77,14 @@ func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Sl
 		}
 	}
 
-	if !strict {
-		for _, slot := range slots {
-			d, err := time.Parse("2006-01-02", slot.Date)
-			if err != nil {
-				return nil, err
-			}
+	for _, slot := range slots {
+		d, err := time.Parse("2006-01-02", slot.Date)
+		if err != nil {
+			return nil, err
+		}
 
-			if d.After(after) {
-				return &slot, nil
-			}
+		if d.After(after) {
+			return &slot, nil
 		}
 	}
 

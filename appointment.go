@@ -48,7 +48,7 @@ func CreateAppointment(venue Venue, req AppointmentReq) ([]byte, error) {
 		return nil, err
 	}
 
-	resp, err := http.Post(appointmentURL(venue), `application/json`, bytes.NewBuffer(body))
+	resp, err := http.Post(createURL(venue), `application/json`, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func CreateAppointment(venue Venue, req AppointmentReq) ([]byte, error) {
 	return data, nil
 }
 
-func appointmentURL(venue Venue) string {
+func createURL(venue Venue) string {
 	return fmt.Sprintf(
 		"https://oap.ind.nl/oap/api/desks/%s/appointments",
 		venue,
