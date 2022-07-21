@@ -1,12 +1,13 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/chadwpetersen/ind"
 	"github.com/chadwpetersen/ind/data"
+	"github.com/chadwpetersen/ind/errors"
 	"github.com/chadwpetersen/ind/log"
 )
 
@@ -49,27 +50,31 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
+
 	if strategy == ind.StrategyTogether {
 		log.Info("Running with together strategy")
-		run(customers...)
+		run(ctx, customers...)
 		return
 	}
 
 	log.Info("Running with individual strategy")
 	for _, customer := range customers {
-		run(customer)
+		run(ctx, customer)
 	}
 }
 
-func run(cl ...ind.Customer) {
+func run(ctx context.Context, cl ...ind.Customer) {
 	var (
 		slot *ind.Slot
 		err  error
 	)
+
+	client := ind.NewClient()
 	for {
 		time.Sleep(10 * time.Second)
 
-		slots, err := ind.FetchSlots(venue, uint(len(cl)))
+		slots, err := client.Find(ctx, venue, len(cl))
 		if err != nil {
 			log.Error("Failed to fetch slots", err, log.WithLabels(
 				map[string]any{
@@ -88,7 +93,8 @@ func run(cl ...ind.Customer) {
 		}
 
 		dates := make([]string, 0)
-		for _, slot := range slots {
+		for i, slot := range slots {
+			slots[i].Venue = venue
 			dates = append(dates, fmt.Sprintf("%s (%s - %s)", slot.Date, slot.Start, slot.End))
 		}
 
@@ -110,58 +116,34 @@ func run(cl ...ind.Customer) {
 
 		log.Info("Picked a slot", log.WithAlert(), log.WithLabels(
 			map[string]any{
-				"venue":     venue,
 				"slot":      slot,
 				"customers": cl,
 			}))
 		break
 	}
 
-	rslot, err := ind.ReserveAppointment(venue, *slot)
+	err = client.Reserve(ctx, slot)
 	if err != nil {
 		log.Error("Failed to reserve appointment", err)
 		return
 	}
 	log.Info("Reserved appointment", log.WithLabels(
 		map[string]any{
-			"venue":         venue,
-			"reserved_slot": rslot,
+			"reserved_slot": slot,
 			"customers":     cl,
 		}))
 
-	apt, err := ind.CreateAppointment(venue, makeAppRequest(*slot, cl))
+	raw, err := client.Book(ctx, email, phone, slot, cl)
 	if err != nil {
 		log.Error("Failed to create appointment", err)
 		return
 	}
-	log.Pass("Created appointment", log.WithLabels(
-		map[string]any{
-			"venue":               venue,
-			"appointment_details": string(apt),
-			"customers":           cl,
-		}))
 
-	err = data.Generate(*slot, apt)
+	err = data.Generate(*slot, raw)
 	if err != nil {
 		log.Error("Failed to create output", err)
 		return
 	}
 
 	log.Pass("Output successfully created")
-}
-
-func makeAppRequest(slot ind.Slot, cl []ind.Customer) ind.AppointmentReq {
-	return ind.AppointmentReq{
-		Slot: slot,
-		Apt: ind.Appointment{
-			ProductKey: "DOC",
-			Date:       slot.Date,
-			Start:      slot.Start,
-			End:        slot.End,
-			Email:      email,
-			Phone:      phone,
-			Language:   "en",
-			Customers:  cl,
-		},
-	}
 }

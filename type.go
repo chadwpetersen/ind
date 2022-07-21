@@ -1,5 +1,7 @@
 package ind
 
+const baseURL = "https://oap.ind.nl/oap/api/desks"
+
 type Venue string
 
 const (
@@ -8,6 +10,10 @@ const (
 	VenueZwolle    Venue = "ZW"
 	VenueDenBosch  Venue = "DB"
 )
+
+func (v Venue) String() string {
+	return string(v)
+}
 
 type Strategy int
 
@@ -18,6 +24,7 @@ const (
 
 type Slot struct {
 	Key    string `json:"key"`
+	Venue  Venue  `json:"-"`
 	Date   string `json:"date"`
 	Start  string `json:"startTime"`
 	End    string `json:"endTime"`
@@ -40,9 +47,4 @@ type Customer struct {
 	VNumber string `json:"vNumber"`
 	Name    string `json:"firstName"`
 	Surname string `json:"lastName"`
-}
-
-type AppointmentReq struct {
-	Slot Slot        `json:"bookableSlot"`
-	Apt  Appointment `json:"appointment"`
 }

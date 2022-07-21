@@ -1,49 +1,11 @@
 package ind
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
 	"sort"
 	"time"
 )
 
-func FetchSlots(venue Venue, persons uint) ([]Slot, error) {
-	if persons > 6 {
-		return nil, ErrTooManyPeople
-	}
-
-	resp, err := http.Get(slotURL(venue, persons))
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	data = bytes.ReplaceAll(data, []byte(")]}',\n"), []byte(""))
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w with (status:%d, body:%s)", ErrInvalidHTTPStatus, resp.StatusCode, string(data))
-	}
-
-	var slots = struct {
-		Status string `json:"status"`
-		Data   []Slot `json:"data"`
-	}{}
-
-	err = json.Unmarshal(data, &slots)
-	if err != nil {
-		return nil, err
-	}
-
-	return slots.Data, nil
-}
-
-func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Slot, error) {
+func PickSlot(slots []*Slot, before time.Time, after time.Time, strict bool) (*Slot, error) {
 	if len(slots) == 0 {
 		return nil, ErrNoAvailableSlots
 	}
@@ -63,7 +25,7 @@ func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Sl
 	})
 
 	if !strict {
-		return &slots[0], nil
+		return slots[0], nil
 	}
 
 	for _, slot := range slots {
@@ -73,7 +35,7 @@ func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Sl
 		}
 
 		if d.After(after) && d.Before(before) {
-			return &slot, nil
+			return slot, nil
 		}
 	}
 
@@ -84,17 +46,9 @@ func PickSlot(slots []Slot, before time.Time, after time.Time, strict bool) (*Sl
 		}
 
 		if d.After(after) {
-			return &slot, nil
+			return slot, nil
 		}
 	}
 
 	return nil, ErrNoAvailableSlots
-}
-
-func slotURL(venue Venue, persons uint) string {
-	return fmt.Sprintf(
-		"https://oap.ind.nl/oap/api/desks/%s/slots/?productKey=DOC&persons=%d",
-		venue,
-		persons,
-	)
 }
