@@ -11,8 +11,33 @@ const (
 	VenueDenBosch  Venue = "DB"
 )
 
+var venues = map[Venue]string{
+	VenueAmsterdam: "Amsterdam",
+	VenueDenHaag:   "Den Haag",
+	VenueZwolle:    "Zwolle",
+	VenueDenBosch:  "Den Bosch",
+}
+
 func (v Venue) String() string {
+	name, ok := venues[v]
+	if !ok {
+		return ""
+	}
+
+	return name
+}
+
+func (v Venue) Code() string {
+	if !v.IsValid() {
+		return ""
+	}
+
 	return string(v)
+}
+
+func (v Venue) IsValid() bool {
+	_, ok := venues[v]
+	return ok
 }
 
 type Strategy int
@@ -21,6 +46,25 @@ const (
 	StrategyIndividual Strategy = 1
 	StrategyTogether   Strategy = 2
 )
+
+var strategies = map[Strategy]string{
+	StrategyIndividual: "individual",
+	StrategyTogether:   "together",
+}
+
+func (s Strategy) String() string {
+	name, ok := strategies[s]
+	if !ok {
+		return ""
+	}
+
+	return name
+}
+
+func (s Strategy) IsValid() bool {
+	_, ok := strategies[s]
+	return ok
+}
 
 type Slot struct {
 	Key    string `json:"key"`

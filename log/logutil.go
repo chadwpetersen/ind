@@ -35,11 +35,19 @@ func (l *logger) Print(v ...any) {
 		}
 	}()
 
+	if !debug && l.Level == LevelDebug {
+		return
+	}
+
 	log.Print(l.Level.Colour(l.Level.String()), ": ", l.msg(v...), "\n")
 }
 
 func (l *logger) msg(v ...any) string {
 	if l.Labels == nil {
+		return fmt.Sprint(v...)
+	}
+
+	if !verbose && l.Level != LevelDebug {
 		return fmt.Sprint(v...)
 	}
 

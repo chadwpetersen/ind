@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func PickSlot(slots []*Slot, before time.Time, after time.Time, strict bool) (*Slot, error) {
+func PickSlot(slots []*Slot, before *time.Time, after *time.Time) (*Slot, error) {
 	if len(slots) == 0 {
 		return nil, ErrNoAvailableSlots
 	}
@@ -24,7 +24,7 @@ func PickSlot(slots []*Slot, before time.Time, after time.Time, strict bool) (*S
 		return aDate.Before(bDate)
 	})
 
-	if !strict {
+	if before == nil && after == nil {
 		return slots[0], nil
 	}
 
@@ -34,19 +34,18 @@ func PickSlot(slots []*Slot, before time.Time, after time.Time, strict bool) (*S
 			return nil, err
 		}
 
-		if d.After(after) && d.Before(before) {
-			return slot, nil
-		}
-	}
-
-	for _, slot := range slots {
-		d, err := time.Parse("2006-01-02", slot.Date)
-		if err != nil {
-			return nil, err
-		}
-
-		if d.After(after) {
-			return slot, nil
+		if before != nil && after != nil {
+			if d.Before(*before) && d.After(*after) {
+				return slot, nil
+			}
+		} else if before != nil {
+			if d.Before(*before) {
+				return slot, nil
+			}
+		} else if after != nil {
+			if d.After(*after) {
+				return slot, nil
+			}
 		}
 	}
 

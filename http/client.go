@@ -50,7 +50,7 @@ func (c *Client) POST(ctx context.Context, url string, body any) ([]byte, int, e
 func (c *Client) Do(req *http.Request) ([]byte, int, error) {
 	req.Header.Set("Content-Type", `application/json`)
 
-	log.Debug("Performing HTTP request", log.WithLabels(
+	log.Debug("Performed HTTP request", log.WithLabels(
 		map[string]any{
 			"method": req.Method,
 			"url":    req.URL.String(),

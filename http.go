@@ -26,7 +26,7 @@ func (c client) Find(ctx context.Context, venue Venue, amount int) ([]*Slot, err
 		return nil, ErrTooManyPeople
 	}
 
-	url := fmt.Sprintf("%s/slots/?productKey=DOC&persons=%d", venue, amount)
+	url := fmt.Sprintf("%s/slots/?productKey=DOC&persons=%d", venue.Code(), amount)
 
 	data, _, err := c.httpClient.GET(ctx, url)
 	if err != nil {
@@ -47,7 +47,7 @@ func (c client) Find(ctx context.Context, venue Venue, amount int) ([]*Slot, err
 }
 
 func (c client) Reserve(ctx context.Context, slot *Slot) error {
-	url := fmt.Sprintf("%s/slots/%s", slot.Venue, slot.Key)
+	url := fmt.Sprintf("%s/slots/%s", slot.Venue.Code(), slot.Key)
 
 	data, _, err := c.httpClient.POST(ctx, url, slot)
 	if err != nil {
@@ -71,7 +71,7 @@ func (c client) Book(ctx context.Context, email string,
 	phone string, slot *Slot, customers []Customer) ([]byte, error) {
 
 	var (
-		url  = fmt.Sprintf("%s/appointments", slot.Venue)
+		url  = fmt.Sprintf("%s/appointments", slot.Venue.Code())
 		aReq = struct {
 			Slot *Slot       `json:"bookableSlot"`
 			Apt  Appointment `json:"appointment"`
