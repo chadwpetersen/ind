@@ -176,10 +176,7 @@ func (d *date) Value() *time.Time {
 }
 
 func (d *date) String() string {
-	y, m, dt := time.Now().Date()
-	t := time.Date(y, m, dt, 0, 0, 0, 0, time.UTC)
-	*d = date(t)
-	return t.Format("02/Jan/2006")
+	return ""
 }
 
 type stringList []string

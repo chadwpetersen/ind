@@ -49,7 +49,7 @@ func (c client) Find(ctx context.Context, venue Venue,
 }
 
 func (c client) Pick(_ context.Context, slots []*Slot,
-	before, after *time.Time) (*Slot, error) {
+	date, before, after *time.Time) (*Slot, error) {
 
 	if len(slots) == 0 {
 		return nil, ErrNoAvailableSlots
@@ -69,17 +69,17 @@ func (c client) Pick(_ context.Context, slots []*Slot,
 		return aDate.Before(bDate)
 	})
 
-	if before == nil && after == nil {
-		return slots[0], nil
-	}
-
 	for _, slot := range slots {
 		d, err := time.Parse("2006-01-02", slot.Date)
 		if err != nil {
 			return nil, err
 		}
 
-		if before != nil && after != nil {
+		if date != nil {
+			if d.Equal(*date) {
+				return slot, nil
+			}
+		} else if before != nil && after != nil {
 			if d.Before(*before) && d.After(*after) {
 				return slot, nil
 			}

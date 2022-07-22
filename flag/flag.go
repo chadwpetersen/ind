@@ -18,6 +18,7 @@ var (
 
 	Before before
 	After  after
+	Date   date
 
 	Customers []ind.Customer
 	vNumbers  stringList
@@ -32,6 +33,7 @@ func init() {
 	flag.Var(&Email, "email", "Email is the email address used for the appointment.")
 	flag.Var(&Before, "before", "Before is an optional value to filter the appointments that occur before this provided date.")
 	flag.Var(&After, "after", "After is an optional value to filter the appointments that occur after this provided date.")
+	flag.Var(&Date, "date", "Date is an optional value to filter the appointments that occur on this provided date.")
 	flag.Var(&vNumbers, "vnumbers", "V Numbers to use when booking the appointment.")
 	flag.Var(&names, "names", "Names to use when booking the appointment.")
 	flag.Var(&surnames, "surnames", "Surnames to use when booking the appointment.")
@@ -46,6 +48,7 @@ func Parse() {
 		"venue":    Venue.Value().String(),
 		"before":   Before.Value(),
 		"after":    After.Value(),
+		"date":     Date.Value(),
 		"strategy": Strategy.Value().String(),
 		"phone":    Phone.Value(),
 		"email":    Email.Value(),
@@ -71,6 +74,12 @@ func parseArgs() {
 		}
 
 		usage(2, "missing value for required flag -%s", name)
+	}
+
+	// Ignore Before and After values if date is provided.
+	if Date.Value() != nil {
+		Before = before{}
+		After = after{}
 	}
 
 	if len(vNumbers) != len(names) {
