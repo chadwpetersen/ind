@@ -70,7 +70,7 @@ func run(ctx context.Context, cl ...ind.Customer) {
 				"dates":     dates,
 			}))
 
-		slot, err = ind.PickSlot(slots, flag.Before.Value(), flag.After.Value())
+		slot, err = client.Pick(ctx, slots, flag.Before.Value(), flag.After.Value())
 		if errors.Is(err, ind.ErrNoAvailableSlots) {
 			log.Warn("No available slots to pick")
 			continue

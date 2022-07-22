@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/chadwpetersen/ind/http"
 	"github.com/chadwpetersen/ind/log"
 )
-
-var _ API = new(client)
 
 type client struct {
 	httpClient *http.Client
@@ -21,7 +21,9 @@ func NewClient() client {
 	}
 }
 
-func (c client) Find(ctx context.Context, venue Venue, amount int) ([]*Slot, error) {
+func (c client) Find(ctx context.Context, venue Venue,
+	amount int) ([]*Slot, error) {
+
 	if amount > 6 {
 		return nil, ErrTooManyPeople
 	}
@@ -46,6 +48,55 @@ func (c client) Find(ctx context.Context, venue Venue, amount int) ([]*Slot, err
 	return slots.Data, nil
 }
 
+func (c client) Pick(_ context.Context, slots []*Slot,
+	before, after *time.Time) (*Slot, error) {
+
+	if len(slots) == 0 {
+		return nil, ErrNoAvailableSlots
+	}
+
+	sort.Slice(slots, func(i, j int) bool {
+		aDate, err := time.Parse("2006-01-02", slots[i].Date)
+		if err != nil {
+			return false
+		}
+
+		bDate, err := time.Parse("2006-01-02", slots[j].Date)
+		if err != nil {
+			return false
+		}
+
+		return aDate.Before(bDate)
+	})
+
+	if before == nil && after == nil {
+		return slots[0], nil
+	}
+
+	for _, slot := range slots {
+		d, err := time.Parse("2006-01-02", slot.Date)
+		if err != nil {
+			return nil, err
+		}
+
+		if before != nil && after != nil {
+			if d.Before(*before) && d.After(*after) {
+				return slot, nil
+			}
+		} else if before != nil {
+			if d.Before(*before) {
+				return slot, nil
+			}
+		} else if after != nil {
+			if d.After(*after) {
+				return slot, nil
+			}
+		}
+	}
+
+	return nil, ErrNoAvailableSlots
+}
+
 func (c client) Reserve(ctx context.Context, slot *Slot) error {
 	url := fmt.Sprintf("%s/slots/%s", slot.Venue.Code(), slot.Key)
 
@@ -67,8 +118,8 @@ func (c client) Reserve(ctx context.Context, slot *Slot) error {
 	return nil
 }
 
-func (c client) Book(ctx context.Context, email string,
-	phone string, slot *Slot, customers []Customer) ([]byte, error) {
+func (c client) Book(ctx context.Context, email, phone string,
+	slot *Slot, customers []Customer) ([]byte, error) {
 
 	var (
 		url  = fmt.Sprintf("%s/appointments", slot.Venue.Code())
