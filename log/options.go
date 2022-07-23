@@ -12,6 +12,10 @@ type Option func(l *logger)
 // WithAlert instructs the logger to alert.
 func WithAlert() Option {
 	return func(l *logger) {
+		// Skip if alert is not enabled.
+		if !alerts {
+			return
+		}
 		// Skip if already alerted.
 		if l.deferFuncs["alert"] != nil {
 			return
@@ -45,7 +49,10 @@ func withError(err error) Option {
 		l.Labels = map[string]any{
 			"err": fmt.Sprintf("%v", err),
 		}
-
+		// Skip if alert is not enabled.
+		if !alerts {
+			return
+		}
 		l.deferFuncs["alert"] = func() {
 			alert.Say(fmt.Sprintf("%s %v", l.Message, err))
 		}

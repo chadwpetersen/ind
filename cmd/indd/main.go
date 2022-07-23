@@ -13,20 +13,23 @@ import (
 )
 
 func main() {
-	flag.Parse()
+	log.Info("Starting indd 🤖")
 
+	flag.Parse()
 	ctx := context.Background()
 
 	if flag.Strategy.Value() == ind.StrategyTogether {
-		log.Info("Running with together strategy")
+		log.Debug("Running with together strategy")
 		run(ctx, flag.Customers...)
 		return
 	}
 
-	log.Info("Running with individual strategy")
+	log.Debug("Running with individual strategy")
 	for _, customer := range flag.Customers {
 		run(ctx, customer)
 	}
+
+	log.Info("Stopping indd 🤖")
 }
 
 func run(ctx context.Context, cl ...ind.Customer) {
