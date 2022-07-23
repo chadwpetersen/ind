@@ -8,7 +8,7 @@ const (
 	LevelWarn    Level = "WARNING"
 	LevelDebug   Level = "DEBUG"
 	LevelError   Level = "ERROR"
-	levelUnknown Level = ""
+	levelUnknown Level = "UNKNOWN"
 )
 
 var colours = map[Level]string{
@@ -23,9 +23,8 @@ var colours = map[Level]string{
 func (l Level) String() string {
 	_, ok := colours[l]
 	if !ok {
-		return ""
+		return string(levelUnknown)
 	}
-
 	return string(l)
 }
 
@@ -34,6 +33,5 @@ func (l Level) Colour(txt string) string {
 	if !ok {
 		colour = colours[levelUnknown]
 	}
-
 	return colour + txt + colours[levelUnknown]
 }

@@ -28,7 +28,7 @@ func newLogger(level Level, msg string, opts ...Option) *logger {
 	return l
 }
 
-func (l *logger) Print(v ...any) {
+func (l *logger) Println(v ...any) {
 	defer func() {
 		for _, fn := range l.deferFuncs {
 			fn()
@@ -39,7 +39,7 @@ func (l *logger) Print(v ...any) {
 		return
 	}
 
-	log.Print(l.Level.Colour(l.Level.String()), ": ", l.msg(v...), "\n")
+	log.Println(l.Level.Colour(l.Level.String())+":", l.msg(v...))
 }
 
 func (l *logger) msg(v ...any) string {
